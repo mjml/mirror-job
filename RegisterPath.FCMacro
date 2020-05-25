@@ -1,0 +1,7 @@
+import RegisterPath
+
+flip_axis = FreeCAD.Vector(1,0,0)
+
+(midline, ortho_axis) = RegisterPath.validate_midline(flip_axis)
+
+FreeCAD.Console.PrintMessage("Found registration midline at v ⋅ " + str(ortho_axis) + " = " + str(midline))

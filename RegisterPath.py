@@ -1,80 +1,68 @@
 import FreeCAD
-import math
+from math import *
 
-curdoc = FreeCAD.activeDocument()
+def validate_midline (flip_axis):
+    # Variables
 
-# Variables
+    # Gives parallel direction of the flip axis. For planar milling, the Z-coordinate should always be zero.
+    #flip_axis = FreeCAD.Vector(1,0,0).normalize()
+    flip_axis.normalize()
+    R = FreeCAD.Matrix()
+    R.rotateZ(pi/2)
+    ortho_axis = (R * flip_axis).normalize()
 
-# Gives parallel direction of the flip axis. For planar milling, the Z-coordinate should always be zero.
-flip_axis = FreeCAD.Vector(1,0,0).normalize()
-ortho_axis = FreeCAD.Vector(0,1,0).normalize()
+    # Find the Registration sketch
+    objs = FreeCAD.ActiveDocument.Objects
+    reg = [ x for x in objs if x.TypeId == 'Sketcher::SketchObject' and x.Label == 'Registration1' ]
+    circles = [ c for c in reg if type(c) is Part.Circle ]
 
-# Find the Registration sketch
-objs = FreeCAD.ActiveDocument.Objects
-reg = [ x for x in objs if x.TypeId == 'Sketcher::SketchObject' and x.Label == 'Registration1' ]
-circles = [ c for c in reg if type(c) is Part.Circle ]
+    # Project each circle onto the flip axis to validate them all and to determine the midpoint
+    cs = []
+    for c in circles:
+        cs.append(type('',(object,),{ "proj": c.Location.dot(flip_axis), 
+                    "off": c.Location.dot(ortho_axis), 
+                    "c": c })())
 
-# Project each circle onto the flip axis to validate them all and to determine the midpoint
-cs = []
-for c in circles:
-    cs.append(type('',(object,),{ "proj": c.Location.dot(flip_axis), 
-                "off": c.Location.dot(ortho_axis), 
-                "c": c })())
+    sorted_circles = sorted(cs, key=lambda a: a[0])
+    FreeCAD.Console.Print("Found " + len(sorted_circles) + " circles")
 
-sorted_circles = sorted(cs,key=lambda a: a[0])
+    # Bin the circles according to their projection onto the flip axis
+    bins = []
+    for c in sorted_circles:
+        if len(bins) == 0:
+            bins.append([c])
+        elif isclose(c.proj, bins[-1][0].proj, abs_tol=1e-9):
+            bins[-1].append(c)
+        else:
+            bins.append([c])
 
-bins = []
-for c in sorted_circles:
-    if len(bins) == 0:
-        bins.append([c])
-    elif math.isclose(c.proj, bins[-1][0].proj, abs_tol=1e-9):
-        bins[-1].append(c)
-    else:
-        bins.append([c])
+    FreeCAD.Console.Print("Found " + len(bins) + " bins")
 
-i=0
-pairs = []
-unpaired = 0
-midline = math.inf  # the orthogonal axis coordinate of the flip line
-while i < math.floor(len(bins)/2):
-    a = bins[i]
-    b = bins[-1-i]
-    for p in a:
-        for q in b:
-            if (math.isclose(p.proj, q.proj, abs_tol=1e-9)):
-                pairs.append((p,q))
-                a.remove(p)
-                b.remove(q)
-                m = (p.off+q.off)/2
-                if math.isinf(midline):
-                    midline = m
-                elif not math.isclose(midline, m, abs_tol=1e-9):
-                    FreeCAD.Console.PrintError("Pairs of registration holes do not agree on the midpoint.")
+    # Pair the circles in each bin by their offset
+    midline = inf  # the orthogonal axis coordinate of the flip line
+    for b in bins:
+        sorted_circles = sorted(b, key=lambda x: x.off)
+        i=0
+        while i < floor(len(b)/2):
+            c1 = b[i]
+            c2 = b[-1-i]
+            m = (c1.off + c2.off)/2
+            if isinf(midline):
+                midline = m
+            elif not isclose(midline, m, abs_tol=1e-9):
+                FreeCAD.Console.PrintError("Registration pin pair mismatches another pair on proposed flip line at dot(v,ortho_axis) == " + midline + " ≠ " + m)
+            i=i+1
+        if i == floor(len(b)/2) + 1:
+            if isinf(midline):
+                midline = b[i].off
+            elif isclose(midline, b[i].off, abs_tol=1e-9):
+                FreeCAD.Console.PrintError("Middle registration pin at " + str(b[i].c) + " doesn't coincide with proposed midline")
 
-    if a.count == 0:
-        bins.remove(a)
-    else:
-        FreeCAD.Console.PrintError("Found unpaired registration holes: " + str([ x.c.Location for x in a ]))
-        unpaired = unpaired+1
-    if b.count == 0:
-        bins.remove(b)
-    else:
-        FreeCAD.Console.PrintError("Found unpaired registration holes: " + str([ x.c.Location for x in b ]))
-        unpaired = unpaired+1
+    if isinf(midline):
+        FreeCAD.Console.PrintError("Couldn't find registration midline.\n")
 
-if len(bins) > 0:
-    if len(bins) == 1:
-        for p in bins[0]:
-            if math.isinf(midline):
-                midline = p.off
-            elif not math.isclose(midline, p.off):
-                FreeCAD.Console.PrintError("Found misaligned registration hole: " + str(p.circle.Location))
-            
-    else:
-        FreeCAD.Console.PrintError("Too many unpaired registration holes, aborting registration.\n")
+    # Intercept of midline along orthogonal axis
+    return midline
 
-if math.isinf(midline):
-    FreeCAD.Console.PrintError("Couldn't find registration midline.\n")
-
-    
+        
 
