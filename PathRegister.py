@@ -65,4 +65,11 @@ def validate_midline (flip_axis):
     return midline
 
         
+def copy_model (src_job, tgt_job):
+    tgt_job.Placement.Matrix = App.Matrix(src_job.Placement.Matrix)
 
+def copy_stock (src_job, tgt_job):
+    pass
+
+def rotate_job (src_job, tgt_job, flip_axis, ortho_axis, midline)
+    pass
