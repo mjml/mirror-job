@@ -1,16 +1,17 @@
-import RegisterPath
+import PathRegister
 
-flip_axis = FreeCAD.Vector(1,0,0)
+flip_x_axis = True
+flip_axis = App.Vector(1,0,0) # for displaying messages only
 registration_sketch_label = "Registration1"
 
-(midline, ortho_axis) = RegisterPath.validate_midline(registration_sketch_label, flip_axis)
-FreeCAD.Console.PrintMessage("Found registration midline at v ⋅ " + str(ortho_axis) + " = " + str(midline) + "\n")
+(midline, ortho_axis) = PathRegister.validate_midline(registration_sketch_label, flip_x_axis)
+FreeCAD.Console.PrintMessage("Found registration midline at v ⋅ " + str(flip_axis) + " = " + str(midline) + "\n")
 
 doc = FreeCAD.activeDocument()
 src_job = doc.Job
-tgt_job = doc.Job001
+tgt_job = doc.Job004
 
-RegisterPath.copy_model(src_job, tgt_job)
-RegisterPath.copy_stock(src_job, tgt_job)
-RegisterPath.rotate_job(src_job, tgt_job, flip_axis, ortho_axis, midline)
+PathRegister.copy_model(src_job, tgt_job)
+PathRegister.copy_stock(src_job, tgt_job)
+PathRegister.rotate_job(src_job, tgt_job, flip_x_axis, midline)
 
