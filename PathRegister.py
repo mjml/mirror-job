@@ -6,7 +6,7 @@ from math import *
 
 eps_tol = 1e-7
 
-def validate_midline (rlabel, flip_x_axis):
+def validate_midline (rsketch, flip_x_axis):
 
     # Gives parallel direction of the flip axis. For planar milling, the Z-coordinate should always be zero.
     flip_axis  = App.Vector(1,0,0)
@@ -15,15 +15,18 @@ def validate_midline (rlabel, flip_x_axis):
         flip_axis  = App.Vector(0,1,0)
         ortho_axis = App.Vector(1,0,0)
 
-    # Find the Registration sketch
-    objs = App.ActiveDocument.Objects
-    reg = [ x for x in objs if x.TypeId == 'Sketcher::SketchObject' and x.Label == rlabel ]
-    circles = [ c for c in reg[0].Geometry if type(c) is Part.Circle ]
+    circles = [ c for c in rsketch.Geometry if type(c) is Part.Circle ]
+    if len(circles) != 2: # Couldn't find the circles within the sketches
+        raise Exception("Couldn't find exactly two circles within the Registration sketch")
+
+    if flip_axis == None:
+        flip_axis = circles[1].Location - circles[0].Location
+        ortho_axis = flip_axis.cross(App.Vector(0,0,1))    
 
     # Project each circle onto the flip axis to validate them all and to determine the midpoint
     cs = []
     for c in circles:
-        App.Console.PrintMessage("Circle " + str(c) + "\n")
+        #App.Console.PrintMessage("Circle " + str(c) + "\n")
         cs.append(type('',(object,),{ 
                     "proj": c.Location.dot(flip_axis), 
                     "off": c.Location.dot(ortho_axis), 
@@ -43,7 +46,7 @@ def validate_midline (rlabel, flip_x_axis):
 
     # Pair the circles in each bin by their orthogonal projection ("off")
     midline = inf  # the orthogonal axis coordinate of the flip line
-    App.Console.PrintMessage("There are " + str(len(bins)) + " bins\n")
+    #App.Console.PrintMessage("There are " + str(len(bins)) + " bins\n")
     for b in bins:
         sorted_circles = sorted(b, key=lambda x: x.off)
         i=0
@@ -61,7 +64,7 @@ def validate_midline (rlabel, flip_x_axis):
                 midline = b[i].off
             elif isclose(midline, b[i].off, abs_tol=eps_tol):
                 raise Exception("Middle registration pin at " + str(b[i].c) + " doesn't coincide with proposed midline\n")
-
+    
     # Intercept of midline along orthogonal axis
     return midline, ortho_axis
 
@@ -79,8 +82,8 @@ def copy_stock (src_job, tgt_job):
     elif src_job.Stock.StockType == 'FromBase':
         sst = src_job.Stock
         tst = PathScripts.PathStock.CreateFromBase(tgt_job,
-                neg=App.Vector(sst.ExtXNeg, sst.ExtYNeg, sst.ExtZNeg),
-                pos=App.Vector(sst.ExtXPos, sst.ExtYPos, sst.ExtZPos),
+                neg=App.Vector(sst.ExtXneg, sst.ExtYneg, sst.ExtZneg),
+                pos=App.Vector(sst.ExtXpos, sst.ExtYpos, sst.ExtZpos),
                 placement=App.Placement(src_job.Placement))
     else:
         raise Exception("Two-sided registration can only work with Box and Base (boundbox) Stock types for now.\n")
@@ -88,8 +91,7 @@ def copy_stock (src_job, tgt_job):
     oldlbl = tgt_job.Stock.Label
     tgt_job.Stock = tst
     App.ActiveDocument.removeObject(oldlbl)
-    #tgt_job.Stock.Label = oldlbl
-
+     
 
 def rotate_job (src_job, tgt_job, flip_x_axis, midline):
     if midline == math.inf:

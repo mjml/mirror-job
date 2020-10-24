@@ -1,15 +1,57 @@
 import PathRegister
+import Path
+import PathScripts
+import PathScripts.PathJob as PathJob
+import PathScripts.PathJobGui as PathJobGui
 
-flip_x_axis = True
-flip_axis = App.Vector(1,0,0) # for displaying messages only
-registration_sketch_label = "Registration1"
+def is_registration_sketch(obj):
+    if obj.TypeId != "Sketcher::SketchObject":
+        return False;
+    
+    circles = [ c for c in obj.Geometry ]
+    if len(circles) < 2:
+        return False;
+    
+    return True;
 
-(midline, ortho_axis) = PathRegister.validate_midline(registration_sketch_label, flip_x_axis)
+def is_job_object(obj):
+    if (obj.TypeId != "Path::FeaturePython"):
+        return False;
+    return hasattr(obj, 'Path') and hasattr(obj, 'Model')
+
+App.Console.PrintMessage("---PathRegister.FCMacro---\n");
+
+flip_x_axis = False
+flip_axis = App.Vector(0,1,0) # for displaying messages only
+
+# Let's find the Registration object, source job, and target job from the sketch.
+
+try: 
+    rsketch = next( x for x in Gui.Selection.getSelection() if is_registration_sketch(x) )
+except StopIteration as err:
+    raise Exception("No registration sketch selected.")
+
+jobs = [x for x in Gui.Selection.getSelection() if is_job_object(x)]
+
+if len(jobs) not in [1, 2]:
+    raise Exception("Please select one or two Job objects and a Registration Sketch before using this feature.")
+
+(midline, ortho_axis) = PathRegister.validate_midline(rsketch, flip_x_axis)
 FreeCAD.Console.PrintMessage("Found registration midline at v ⋅ " + str(flip_axis) + " = " + str(midline) + "\n")
 
 doc = FreeCAD.activeDocument()
-src_job = doc.Job
-tgt_job = doc.Job004
+
+src_job = jobs[0]
+if len(jobs) == 1:
+    models = src_job.Model.OutList
+    #FreeCAD.ActiveDocument.openTransaction("Create Job");
+    tgt_job = PathJob.Create('Job', models, None)
+    vp = PathJobGui.ViewProvider(tgt_job.ViewObject)
+    #FreeCAD.ActiveDocument.commitTransaction()
+    tgt_job.ViewObject.Proxy = vp
+    tgt_job.Document.recompute()
+else:
+    tgt_job = jobs[1];
 
 PathRegister.copy_model(src_job, tgt_job)
 PathRegister.copy_stock(src_job, tgt_job)
