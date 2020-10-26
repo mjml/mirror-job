@@ -8,7 +8,7 @@ def is_registration_sketch(obj):
     if obj.TypeId != "Sketcher::SketchObject":
         return False;
     
-    circles = [ c for c in obj.Geometry ]
+    circles = [ c for c in obj.Geometry if type(c) == Part.Circle ]
     if len(circles) < 2:
         return False;
     
@@ -25,7 +25,6 @@ flip_x_axis = False
 flip_axis = App.Vector(0,1,0) # for displaying messages only
 
 # Let's find the Registration object, source job, and target job from the sketch.
-
 try: 
     rsketch = next( x for x in Gui.Selection.getSelection() if is_registration_sketch(x) )
 except StopIteration as err:
@@ -36,8 +35,7 @@ jobs = [x for x in Gui.Selection.getSelection() if is_job_object(x)]
 if len(jobs) not in [1, 2]:
     raise Exception("Please select one or two Job objects and a Registration Sketch before using this feature.")
 
-(midline, ortho_axis) = PathRegister.validate_midline(rsketch, flip_x_axis)
-FreeCAD.Console.PrintMessage("Found registration midline at v ⋅ " + str(flip_axis) + " = " + str(midline) + "\n")
+(origin, norm) = PathRegister.determine_flipline(rsketch, flip_x_axis)
 
 doc = FreeCAD.activeDocument()
 
@@ -53,7 +51,10 @@ if len(jobs) == 1:
 else:
     tgt_job = jobs[1];
 
+
 PathRegister.copy_model(src_job, tgt_job)
 PathRegister.copy_stock(src_job, tgt_job)
-PathRegister.rotate_job(src_job, tgt_job, flip_x_axis, midline)
+origin = PathRegister.adjust_flip_origin(src_job, origin)
+App.Console.PrintMessage("origin at %s, norm is %s\n" % (str(origin), str(norm)))
+PathRegister.flip_job(src_job, tgt_job, origin, norm)
 

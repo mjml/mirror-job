@@ -6,7 +6,7 @@ from math import *
 
 eps_tol = 1e-7
 
-def validate_midline (rsketch, flip_x_axis):
+def determine_flipline (rsketch, flip_x_axis):
 
     # Gives parallel direction of the flip axis. For planar milling, the Z-coordinate should always be zero.
     flip_axis  = App.Vector(1,0,0)
@@ -15,62 +15,50 @@ def validate_midline (rsketch, flip_x_axis):
         flip_axis  = App.Vector(0,1,0)
         ortho_axis = App.Vector(1,0,0)
 
+    # Find circles (which correspond to alignment pins)
     circles = [ c for c in rsketch.Geometry if type(c) is Part.Circle ]
     if len(circles) != 2: # Couldn't find the circles within the sketches
         raise Exception("Couldn't find exactly two circles within the Registration sketch")
 
-    if flip_axis == None:
-        flip_axis = circles[1].Location - circles[0].Location
-        ortho_axis = flip_axis.cross(App.Vector(0,0,1))    
+    lines = [ l for l in rsketch.Geometry if type(l) is Part.LineSegment and l.Construction ]
+    flipline = None
 
-    # Project each circle onto the flip axis to validate them all and to determine the midpoint
-    cs = []
-    for c in circles:
-        #App.Console.PrintMessage("Circle " + str(c) + "\n")
-        cs.append(type('',(object,),{ 
-                    "proj": c.Location.dot(flip_axis), 
-                    "off": c.Location.dot(ortho_axis), 
-                    "c": c })())
+    # For each construction line, try to project / match all circles
+    for l in lines:
+        allmatched = True # Assume that each circle has a match or is on the flip line until we find otherwise
+        linenorm = (l.EndPoint - l.StartPoint).normalize() # used to project each circle's center
+        # For each circle (i)
+        for i in circles:
+            matched = False
+            rel_i = i.Center - l.StartPoint
+            ext_i = rel_i - (linenorm.dot(rel_i) * linenorm) # extension from line
+            if ext_i.Length < eps_tol:
+                continue;
+            else:
+                # For each circle (j)
+                for j in circles:
+                    rel_j = i.Center - l.StartPoint
+                    ext_j = rel_j - (linenorm.dot(rel_j) * linenorm)
+                    if (ext_i - ext_j).Length < eps_tol:
+                        matched = True
+                        break # break from j loop, this i-j pair matches
 
-    sorted_circles = sorted(cs, key=lambda a: a.off)
-    
-    # Bin the circles according to their projection onto the flip axis
-    bins = []
-    for c in sorted_circles:
-        if len(bins) == 0:
-            bins.append([c])
-        elif isclose(c.off, bins[-1][0].off, abs_tol=eps_tol):
-            bins[-1].append(c)
-        else:
-            bins.append([c])
-
-    # Pair the circles in each bin by their orthogonal projection ("off")
-    midline = inf  # the orthogonal axis coordinate of the flip line
-    #App.Console.PrintMessage("There are " + str(len(bins)) + " bins\n")
-    for b in bins:
-        sorted_circles = sorted(b, key=lambda x: x.off)
-        i=0
-        while i < floor(len(b)/2):
-            c1 = b[i]
-            c2 = b[-1-i]
-            m = (c1.off + c2.off)/2
-            if isinf(midline):
-                midline = m
-            elif not isclose(midline, m, abs_tol=eps_tol):
-                raise Exception("Registration pin pair mismatches another pair on proposed flip line at dot(v,ortho_axis) == " + str(midline) + " ≠ " + str(m) + "\n")
-            i=i+1
-        if i == floor(len(b)/2) + 1:
-            if isinf(midline):
-                midline = b[i].off
-            elif isclose(midline, b[i].off, abs_tol=eps_tol):
-                raise Exception("Middle registration pin at " + str(b[i].c) + " doesn't coincide with proposed midline\n")
-    
-    # Intercept of midline along orthogonal axis
-    return midline, ortho_axis
-
+                if not matched:
+                    allmatched = False
+                    continue # break from i loop, continue in l loop, some l-i couldn't be aligned
         
+        if allmatched:
+            flipline = ( l.StartPoint, linenorm )
+            break # if each circle had a match or was on the flip line, great! this line is our flip line.
+
+    return flipline
+
+
 def copy_model (src_job, tgt_job):
-    tgt_job.Placement.Matrix = App.Matrix(src_job.Placement.Matrix)
+    if len(tgt_job.Model.OutList) != len(src_job.Model.OutList):
+        raise Exception("Target job seems to have a different number of base objects.")
+    for (i,obj) in enumerate(src_job.Model.OutList):
+        tgt_job.Model.OutList[i].Label = obj.Label
 
 
 def copy_stock (src_job, tgt_job):
@@ -91,43 +79,48 @@ def copy_stock (src_job, tgt_job):
     oldlbl = tgt_job.Stock.Label
     tgt_job.Stock = tst
     App.ActiveDocument.removeObject(oldlbl)
-     
 
-def rotate_job (src_job, tgt_job, flip_x_axis, midline):
-    if midline == math.inf:
-        raise Exception("Can't rotate job without midline!")
-    R = App.Matrix()
+
+def adjust_flip_origin(job, origin):
+    z = (job.Stock.Shape.BoundBox.ZMax + job.Stock.Shape.BoundBox.ZMin) / 2
+    App.Console.PrintMessage("z flip at %s\n" % (z))
+    origin.z = z
+    return origin
+
+
+def flip_job (src_job, tgt_job, origin, norm):
+
+    if origin == None or norm == None:
+        raise Exception("Need to have a well-defined flip line in order to create mirrored stock")
+
+    R = App.Matrix() 
     R.unity()
     T = App.Matrix()
     T.unity()
-    if math.fabs(tgt_job.Stock.Shape.BoundBox.ZMin) < eps_tol:
-        App.Console.PrintError("Warning: stock object for two-sided job is not sitting on Z=0\n")
-    bb = tgt_job.Stock.Shape.BoundBox
-    if flip_x_axis:
-        #T.A24 = -(bb.YMax - bb.YMin)/2
-        if midline != (bb.YMax - bb.YMin)/2:
-            App.Console.PrintError("Warning: midline does not pass through the center of the stock along the flip axis (X)\n")
-        T.A24 = -midline
-        T.A34 = -(bb.ZMax - bb.ZMin)/2
-        R.rotateX(math.pi)
-    else:
-        #T.A14 = -(bb.XMax - bb.XMin)/2
-        if midline != (bb.XMax - bb.XMin)/2:
-            App.Console.PrintError("Warning: midline does not pass through the center of the stock along the flip axis (Y)\n")
-        T.A24 = -midline
-        T.A34 = -(bb.ZMax - bb.ZMin)/2
-        R.rotateY(math.pi)
 
-    App.Console.PrintMessage(str(T) + "\n")
+    # Flip along norm 
+    T.A14 = -origin.x
+    T.A24 = -origin.y
+    T.A34 = -origin.z
+
+    R.A11 = 2 * norm.x * norm.x - 1
+    R.A12 = 2 * norm.x * norm.y 
+    R.A13 = 2 * norm.x * norm.z
+
+    R.A21 = 2 * norm.x * norm.y
+    R.A22 = 2 * norm.y * norm.y - 1
+    R.A23 = 2 * norm.y * norm.z
+
+    R.A31 = 2 * norm.z * norm.x
+    R.A32 = 2 * norm.z * norm.y
+    R.A33 = 2 * norm.z * norm.z - 1
+
     Ti = T.inverse()
-    # Quintic but usually these lists have a single element
-    for a in tgt_job.Model.OutList:
-        for b in src_job.Model.OutList:
-            p = a.Objects[0]
-            q = b.Objects[0]
-            if p.ID == q.ID:
-                a.Placement.Matrix = Ti * R * T * b.Placement.Matrix
 
-    tgt_job.Stock.Placement.Matrix = Ti * R * T
+    for (i,obj) in enumerate(tgt_job.Model.OutList):
+        obj.Placement.Matrix =  Ti * R * T * src_job.Model.OutList[i].Placement.Matrix
+
+    tgt_job.Stock.Placement.Matrix = Ti * R * T * src_job.Stock.Placement.Matrix
+    tgt_job.recompute()
     
     
