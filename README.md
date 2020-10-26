@@ -48,7 +48,7 @@ CAM Guidelines
 - If you use a guard rail or bench dogs to align your stock to some coordinate frame, your flip line musn't be too close to these fixture elements.
 "Too close" would be a flip line that lies between an edge of the stock making contact with your fixture and the parallel midline of that stock.
 
-![Flip Lines Example](https://github.com/mjml/path-register/doc/fliplines.png)
+![Flip Lines Example](https://github.com/mjml/path-register/blob/master/doc/fliplines.png)
 
 Otherwise when you flip the stock along that line, the opposite side will not be able to clear your fixture.
 Be aware of how your stock will align with your other fixture elements when designing your flip line.
