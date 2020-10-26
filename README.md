@@ -12,6 +12,8 @@ CAD Instructions
 
 2. Create a job for this part and provide all the required operations for milling the first side.
 
+Ensure that the dimensions of your Stock object match those of your actual workpiece.
+This is particularly important if you use a guide rail fixture or bench dogs to help secure your piece.
 
 3. Create a Sketch at the document level. We'll call this the "Alignment Pin" sketch. This sketch must contain, at minimum:
   - A construction (blue) line indicating the position of the line that you will flip your stock over on.
@@ -38,7 +40,8 @@ You'll have to play with the visibility a bit since these objects will overlap e
 
 5. Make a third job for alignment pin holes in your wasteboard.
 
-If you don't already have this, you can use the Alignment Pin Sketch to produce a drilling job that will put some blind holes into your wasteboard to hold the alignment screws or pins.
+If you don't already have holes in your wasteboard to accomodate the alignment pins,
+  you can use the Alignment Pin Sketch to produce a drilling job for blind holes at these locations.
 
 
 
