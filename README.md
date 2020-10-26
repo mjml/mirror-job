@@ -4,8 +4,8 @@ Two-sided CAM Job helper for FreeCAD
 To use, just load PathRegister.py and bind a toolbar button to the macro PathRegister.FCMacro.
 
 
-Instructions
-------------
+CAD Instructions
+----------------
 
 1. Create a part that would need milling on two sides.
 
@@ -31,4 +31,11 @@ Its Model object will contain copies of whatever Models were in the first Job, b
 You'll have to play with the visibility a bit since these objects will overlap each other on the screen and it will look messy and confusing otherwise.
 
 
-5. Finally, you need to make a third job that will drill your holes in the wasteboard. You can just use the Registration sketch for this again.
+5. Make a third job for alignment pin holes in your wasteboard.
+
+If you don't already have this, you can use the Registration Sketch to produce a drilling job that will put some blind holes into your wasteboard to hold the alignment screws or pins.
+
+CAM Instructions
+----------------
+
+TODO
