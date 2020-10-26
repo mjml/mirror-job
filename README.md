@@ -1,7 +1,15 @@
 Two-sided CAM Job helper for FreeCAD
 ====================================
 
+This little script helps you create two-sided milling jobs for FreeCAD using the alignment pin method.
+
+You create the front side milling job as you would normally, then this script helps you configure the second side job
+  so that it lines up perfectly with the first using alignment pins.
+The positions of the alignment pins and the "flip line" come from a special sketch that you provide.
+
 To use, just load PathRegister.py and bind a toolbar button to the macro PathRegister.FCMacro.
+Then follow the instructions below.
+
 
 
 CAD Instructions
@@ -60,6 +68,7 @@ Be aware of how your stock will align with your other fixture elements when desi
 - Don't forget to create a separate Job for milling of the alignment pin holes from the first side.
 This must be performed manually since the blind hole depths must be deep enough to provide purchase for clamping,
   but not so deep that they go through the wasteboard into the gantry.
+
 
 
 Enjoy!
