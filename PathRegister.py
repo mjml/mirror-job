@@ -54,7 +54,8 @@ def determine_flipline (rsketch, flip_x_axis):
     return flipline
 
 
-def copy_model (src_job, tgt_job):
+def check_model (src_job, tgt_job):
+    # This is done during target job creation, but this method checks for consistency between the two jobs
     if len(tgt_job.Model.OutList) != len(src_job.Model.OutList):
         raise Exception("Target job seems to have a different number of base objects.")
     for (i,obj) in enumerate(src_job.Model.OutList):

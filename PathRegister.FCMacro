@@ -19,8 +19,6 @@ def is_job_object(obj):
         return False;
     return hasattr(obj, 'Path') and hasattr(obj, 'Model')
 
-App.Console.PrintMessage("---PathRegister.FCMacro---\n");
-
 flip_x_axis = False
 flip_axis = App.Vector(0,1,0) # for displaying messages only
 
@@ -40,21 +38,22 @@ if len(jobs) not in [1, 2]:
 doc = FreeCAD.activeDocument()
 
 src_job = jobs[0]
+FreeCAD.ActiveDocument.openTransaction("Create Job");
+
 if len(jobs) == 1:
     models = src_job.Model.OutList
-    #FreeCAD.ActiveDocument.openTransaction("Create Job");
     tgt_job = PathJob.Create('Job', models, None)
     vp = PathJobGui.ViewProvider(tgt_job.ViewObject)
-    #FreeCAD.ActiveDocument.commitTransaction()
     tgt_job.ViewObject.Proxy = vp
     tgt_job.Document.recompute()
 else:
     tgt_job = jobs[1];
 
 
-PathRegister.copy_model(src_job, tgt_job)
+PathRegister.check_model(src_job, tgt_job)
 PathRegister.copy_stock(src_job, tgt_job)
 origin = PathRegister.adjust_flip_origin(src_job, origin)
-App.Console.PrintMessage("origin at %s, norm is %s\n" % (str(origin), str(norm)))
 PathRegister.flip_job(src_job, tgt_job, origin, norm)
+
+FreeCAD.ActiveDocument.commitTransaction()
 

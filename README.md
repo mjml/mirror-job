@@ -48,13 +48,20 @@ If you don't already have holes in your wasteboard to accomodate the alignment p
 CAM Guidelines
 ----------------
 
-- If you use a guard rail or bench dogs to align your stock to some coordinate frame, your flip line musn't be too close to these fixture elements.
+- It is possible to get very good alignments with just two pins, either on the flip line or off it.
+
+- If you use physical fixtures like a guard rail or bench dogs to align your stock to some coordinate frame,
+  your flip line musn't be too close to these fixture elements.
 "Too close" would be a flip line that lies between an edge of the stock making contact with your fixture and the parallel midline of that stock.
-
 ![Flip Lines Example](https://github.com/mjml/path-register/blob/master/doc/fliplines.png)
-
 Otherwise when you flip the stock along that line, the opposite side will not be able to clear your fixture.
 Be aware of how your stock will align with your other fixture elements when designing your flip line.
 
-- It is possible to get very good alignments with just two pins, either on the flip line or off it.
+- Don't forget to create a separate Job for milling of the alignment pin holes from the first side.
+This must be performed manually since the blind hole depths must be deep enough to provide purchase for clamping,
+  but not so deep that they go through the wasteboard into the gantry.
 
+
+Enjoy!
+
+mike@michaeljoya.com (mjml@github)
