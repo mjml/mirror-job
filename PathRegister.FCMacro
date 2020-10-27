@@ -4,27 +4,30 @@ import PathScripts
 import PathScripts.PathJob as PathJob
 import PathScripts.PathJobGui as PathJobGui
 
+
 def is_registration_sketch(obj):
     if obj.TypeId != "Sketcher::SketchObject":
-        return False;
-    
-    circles = [ c for c in obj.Geometry if type(c) == Part.Circle ]
+        return False
+
+    circles = [c for c in obj.Geometry if type(c) == Part.Circle]
     if len(circles) < 2:
-        return False;
-    
-    return True;
+        return False
+
+    return True
+
 
 def is_job_object(obj):
     if (obj.TypeId != "Path::FeaturePython"):
-        return False;
+        return False
     return hasattr(obj, 'Path') and hasattr(obj, 'Model')
 
+
 flip_x_axis = False
-flip_axis = App.Vector(0,1,0) # for displaying messages only
+flip_axis = App.Vector(0, 1, 0)  # for displaying messages only
 
 # Let's find the Registration object, source job, and target job from the sketch.
-try: 
-    rsketch = next( x for x in Gui.Selection.getSelection() if is_registration_sketch(x) )
+try:
+    rsketch = next(x for x in Gui.Selection.getSelection() if is_registration_sketch(x))
 except StopIteration as err:
     raise Exception("No registration sketch selected.")
 
@@ -38,7 +41,7 @@ if len(jobs) not in [1, 2]:
 doc = FreeCAD.activeDocument()
 
 src_job = jobs[0]
-FreeCAD.ActiveDocument.openTransaction("Create Job");
+FreeCAD.ActiveDocument.openTransaction("Create Job")
 
 if len(jobs) == 1:
     models = src_job.Model.OutList
@@ -47,7 +50,7 @@ if len(jobs) == 1:
     tgt_job.ViewObject.Proxy = vp
     tgt_job.Document.recompute()
 else:
-    tgt_job = jobs[1];
+    tgt_job = jobs[1]
 
 
 PathRegister.check_model(src_job, tgt_job)
@@ -56,4 +59,3 @@ origin = PathRegister.adjust_flip_origin(src_job, origin)
 PathRegister.flip_job(src_job, tgt_job, origin, norm)
 
 FreeCAD.ActiveDocument.commitTransaction()
-
