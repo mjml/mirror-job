@@ -1,0 +1,83 @@
+import PathMirror
+import Path
+import PathScripts
+import PathScripts.PathJob as PathJob
+import PathScripts.PathJobGui as PathJobGui
+import PartDesign
+
+# There are at least two or three methods of finding the coordinates of the mirror line.
+# 1. The mirror will use all the rectilinear midpoints of the stock. 
+#    This is a fast method that doesn't require any holes drilled for registration pins.
+#    You just need to choose whether you want to flip on the X or Y axis.
+#    If you are using a CNC vise, you should flip on the axis parallel to the vise screw and rails.
+#    This is so that your fixed jaw stays against the same flat edge of stock during both milling jobs.
+# 2. Use a mirroring Sketch and a Job object. The sketch is contained in the Document (not within in a PartBody).
+#    This is useful when you want the sketch to be defined in the global CS, just like the Job itself.
+#    Just select New Sketch under the Sketch menu in Sketcher mode to create such a sketch.
+# 3. Use a mirroring Sketch contained within the Body of an object relative to that Body's "Model Placement" within a Job.
+#    This method must find the Placement offset of that model, then use the flip line defined within the active Body and project it
+#      into a suitable LCS for the Job.
+#    The script will then apply that Model's Placement within the Job to the flip line.
+#    This is useful when you want to define your pin/mirror sketch relative to the LCS of the PartBody that you are milling.
+#    Since the PartBody may be positioned within the Job's CS, you can use this method to ensure that the mirror line
+#      and pin coordinates are flipped relative to the Model clone's LCS instead.
+
+# This code determines which method you want to use according to the types of objects you have selected in the GUI.
+# For method 1, just select the stock object.
+# For method 2, select a registration Sketch and a Job object
+# For method 3, select a registration Sketch and a Model object
+
+job = None
+origin = None
+norm = None
+apsketch = None
+
+# Test for method 1:
+stock = PathMirror.elicit_stock_object()
+if stock != None:
+    # Need a GUI to ask the user for this...
+    # For now, flipping in the Y direction makes the most sense since the typical gantry CNC vise is oriented this way.
+    # There exist vertical CNC mills that have a vise in the X-direction though, so this should be configurable.
+    flip_x_axis = False 
+    ( origin, norm ) = PathMirror.compute_mirror_from_stock(stock,False)
+    job = PathMirror.find_job_from_stock(stock)
+else:
+    # Test for method 2 & 3: Find the Registration sketch object if it exists.
+    apsketch = PathMirror.elicit_sketch_object();
+    if apsketch != None:
+        # Test for method 2: Find the Job object
+        job = PathMirror.elicit_first_job()
+        if job != None:
+            (origin, norm) = PathMirror.compute_mirror_from_sketch(apsketch,None)
+        else:
+            # Test for method 3: Find the Model object
+            model = PathMirror.elicit_model()
+            if model != None:
+                if not consistent_body(model,apsketch):
+                    raise Exception("This sketch belongs to a PartBody that doesn't correspond to the selected Model.")
+                (origin, norm) = PathMirror.compute_mirror_from_sketch(apsketch, model)
+                job = PathMirror.find_job_from_model(model)
+    else:
+        raise Exception("Alignment pin sketch not found!")
+
+App.Console.PrintMessage("stock: {0}\nsketch: {1}\njob: {2}\norigin: {3}\nnorm: {4}\n".format(stock, apsketch, job, origin, norm))
+
+if job is not None and origin is not None and norm is not None:
+    doc = FreeCAD.activeDocument()
+
+    FreeCAD.ActiveDocument.openTransaction("Create Job")
+
+    tgt_job = PathMirror.elicit_second_job(job)
+    if tgt_job is None:
+        models = job.Model.OutList
+        tgt_job = PathJob.Create('Job', models, None)
+        vp = PathJobGui.ViewProvider(tgt_job.ViewObject)
+        tgt_job.ViewObject.Proxy = vp
+        tgt_job.Document.recompute()
+
+    PathMirror.check_model(job, tgt_job)
+    PathMirror.copy_stock(job, tgt_job)
+    origin = PathMirror.adjust_mirror_origin(job, origin)
+    PathMirror.mirror_job(job, tgt_job, origin, norm)
+
+    FreeCAD.ActiveDocument.commitTransaction()
