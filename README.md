@@ -1,60 +1,88 @@
 Two-sided CAM Job helper for FreeCAD
 ====================================
 
-This little script helps you create two-sided milling jobs for FreeCAD using the alignment pin method.
+This little script helps you create two-sided milling jobs for FreeCAD.
 
-You create the front side milling job as you would normally, then this script helps you configure the second side job
-  so that it lines up perfectly with the first using alignment pins.
-The positions of the alignment pins and the "flip line" come from a special sketch that you provide.
+You create the front side milling job as you would normally.
+This script then helps you configure the reverse side job
+  so that milling operations of the second line up perfectly with the first to create your part.
 
-To use, just load PathRegister.py and bind a toolbar button to the macro PathRegister.FCMacro.
-Then follow the instructions below.
+Installation
+------------
 
+Clone this repo to a directory and ensure that this directory is part of your FreeCAD Python Path.
 
+Example:
+$ git clone https://github.com/mjml/mirror-job 
+$ FreeCAD -P mirror-job
 
-CAD Instructions
-----------------
+It's really just two files. PathMirror.py and PathMirror.FCMacro.
 
-1. Create a part that would need planar milling on both of two sides.
+Copy or symlink PathMirror.FCMacro to your user scripts directory (.FreeCAD on Linux)
 
+The macro will work as long as PathMirror.py is in your FreeCAD path. Otherwise, it will complain that it can't 'import PathMirror'.
 
-2. Create a job for this part and provide all the required operations for milling the first side.
+Setup
+-----
 
-Ensure that the dimensions of your Stock object match those of your actual workpiece.
-This is particularly important if you use a guide rail fixture or bench dogs to help secure your piece.
+Go to Customize -> Macros and create a macro.
 
-3. Create a Sketch at the document level. We'll call this the "Alignment Pin" sketch. This sketch must contain, at minimum:
-  - A construction (blue) line indicating the position of the line that you will flip your stock over on.
-	
-	- A set of circles. Each circle will either a) be exactly on the flip line or b) have some other matching circle that is mirrored with itself along the flip line
+Choose PathMirror, then give it the name "Mirror Job". If you want a description, "Create or Update Reverse Side Job".
+You should give it an icon also, I use the double-pins icon to symbolize alignment pins.
 
-The mirror constraint is obviously very helpful for creating pairs of circles that mirror each other on the flip line.
+Now go to Customize -> Toolbars and on the right side, choose the Path workbench and
+  create a subtoolbar with a name like "Mirroring".
+On the left side where you see the available buttons, choose "Macros" from the drop-down list.
+You should see the Mirror Job macro that you just created. Use the right arrow to place it inside the Mirroring subtoolbar.
 
-The circles are intended to be the positions of alignment pins or screws.
-For example, I use M3 set screws for this purpose and so I set the diameters to be 3.0mm each.
-
-When the stock is flipped to mill the backward side, any holes lying on the flip-line will obviously be filled with the same pin but from the opposite side.
-Any holes lying off of the flip-line will be filled by the pin from its "mirror" hole on the opposite side of the flip line.
-
-
-4. Click the toolbar button that you bound to PathRegister.FCMacro.
-
-A second job will be created. You'll notice that its Stock object is a flipped version of the first Job's,
-  where the flip line was the line you defined in the Alignment Pin sketch.
-Its Model object will contain copies of whatever Models were in the first Job, but they will be flipped over just like the stock object,
-  so you can create Operations for them.
-You'll have to play with the visibility a bit since these objects will overlap each other on the screen and be messy and confusing otherwise.
+Now when you enter the Path workbench, your Mirroring subtoolbar should appear with its one Mirror Job button in the toolbar.
 
 
-5. Make a third job for alignment pin holes in your wasteboard.
+Usage 
+-----
 
-If you don't already have holes in your wasteboard to accomodate the alignment pins,
-  you can use the Alignment Pin Sketch to produce a drilling job for blind holes at these locations.
+There are two different methods for aligning your reverse-side job that depend on your fixture.
+
+Briefly, the first method uses a CNC vise and only requires you to flip the stock over in the same direction as the vise screw.
+The second method uses at least two alignment pins. These pins are equidistant from a "flip line" that travels through your stock.
+
+Method 1: Just flip the stock against a fixed vise jaw and Y-axis locator.
+--------------------------------------------------------------------------
+
+Instead of pins, this method relies on your ability to register the stock up against a vise or L-bracket so that the lower left
+  corner of the stock is in the same exact place for both the first side and the reverse side.
+
+This method is faster since you do not need to mill or drill alignment holes in wasteboard or anywhere else,
+  but its drawback is that it requires you to measure the width of your stock rather precisely.
+If you get the stock width measurement wrong, your top and bottom jobs will not be aligned, resulting in a poorly machined part.
+Similarly, if you stock is not flat against the fixed jaw of the vise or if it is out of square, you will see deviations where the
+  top and bottom jobs do not align perfectly.
+
+For wood, the standard methods that you use to square off stock are usually sufficient for obtaining roughly 0.5-millimeter accuracy and
+  agreement between your top and bottom jobs.
+
+If you need better accuracy than this, you should instead use the alignment pin method described below.
+
+
+Method 2: Flip the stock along an axis that you define, secured in place using alignment pins.
+----------------------------------------------------------------------------------------------
+
+For this method, this script requires you to make a small sketch at either Document or PartBody level that identifies where in the XY plane
+  the alignment pins (circles) are and where the flip line is.
+These circles do not have to be of the same size, although they should all match some counterpart on the other side of the flip line.
+Circles that lie "on" the flip line are matched to themselves since the same pin will fit into the same hole from either side.
+
+This sketch will be in the XY plane and does not necessarily need an attachment.
+The circles should be standard non-construction white circles and the flip line should be a blue construction line.
+
+The circles are meant to indicate the full diameter of the pin hole, not indicators of the milling path.
+To be clear, when you pocket or helix-mill these holes, you'll be configuring the job as a standard pocket so that the
+path is offset toward the center of the hole by half the tool width.
 
 
 
-CAM Guidelines
-----------------
+Guidelines
+----------
 
 - It is possible to get very good alignments with just two pins, either on the flip line or off it.
 
