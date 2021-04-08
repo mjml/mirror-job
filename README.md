@@ -14,14 +14,14 @@ Installation
 Clone this repo to a directory and ensure that this directory is part of your FreeCAD Python Path.
 
 Example:
-$ git clone https://github.com/mjml/mirror-job 
-$ FreeCAD -P mirror-job
+``$ git clone https://github.com/mjml/mirror-job 
+$ FreeCAD -P mirror-job``
 
-It's really just two files. PathMirror.py and PathMirror.FCMacro.
+It's really just two files. `PathMirror.py` and `PathMirror.FCMacro`.
 
-Copy or symlink PathMirror.FCMacro to your user scripts directory (.FreeCAD on Linux)
+Copy or symlink `PathMirror.FCMacro` to your user scripts directory (.FreeCAD on Linux)
 
-The macro will work as long as PathMirror.py is in your FreeCAD path. Otherwise, it will complain that it can't 'import PathMirror'.
+The macro will work as long as `PathMirror.py` is in your FreeCAD path. Otherwise, it will complain that it can't 'import PathMirror'.
 
 Setup
 -----
