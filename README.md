@@ -14,8 +14,10 @@ Installation
 Clone this repo to a directory and ensure that this directory is part of your FreeCAD Python Path.
 
 Example:
-``$ git clone https://github.com/mjml/mirror-job 
-$ FreeCAD -P mirror-job``
+```bash
+$ git clone https://github.com/mjml/mirror-job
+$ FreeCAD -P mirror-job
+```
 
 It's really just two files. `PathMirror.py` and `PathMirror.FCMacro`.
 
@@ -28,15 +30,15 @@ Setup
 
 Go to Customize -> Macros and create a macro.
 
-Choose PathMirror, then give it the name "Mirror Job". If you want a description, "Create or Update Reverse Side Job".
-You should give it an icon also, I use the double-pins icon to symbolize alignment pins.
+Choose PathMirror, then give it the name "Reverse Side Job". If you want a description, "Create or Update Reverse Side Job".
+You should give it an icon for the toolbar button also, I use the double-pins icon to symbolize alignment pins.
 
 Now go to Customize -> Toolbars and on the right side, choose the Path workbench and
-  create a subtoolbar with a name like "Mirroring".
+  create a subtoolbar with a name like "Reverse".
 On the left side where you see the available buttons, choose "Macros" from the drop-down list.
-You should see the Mirror Job macro that you just created. Use the right arrow to place it inside the Mirroring subtoolbar.
+You should see the Reverse Side Job macro that you just created. Use the right arrow to place it inside the Reverse subtoolbar.
 
-Now when you enter the Path workbench, your Mirroring subtoolbar should appear with its one Mirror Job button in the toolbar.
+Now when you enter the Path workbench, your Reverse subtoolbar should appear with its one Reverse Side Job in the toolbar.
 
 
 Usage 
