@@ -4,8 +4,9 @@ Two-sided CAM Job helper for FreeCAD
 This little script helps you create two-sided milling jobs for FreeCAD.
 
 You create the front side milling job as you would normally.
-This script then helps you configure the reverse side job
-  so that milling operations of the second line up perfectly with the first to create your part.
+This script then helps you configure the reverse side job so that 
+  milling operations of the reverse side line up 
+  perfectly with the first to create your part.
 
 Installation
 ------------
